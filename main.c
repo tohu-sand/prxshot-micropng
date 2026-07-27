@@ -30,6 +30,7 @@
 #include "pspdefs.h"
 #include "kalloc.h"
 #include "bitmap.h"
+#include "png_write.h"
 #include "pbp.h"
 #include "minIni.h"
 #include "logger.h"
@@ -44,6 +45,8 @@ PSP_HEAP_SIZE_KB(8);
 #define SHOT_BLK_NAME "shot_blk"
 #define MAX_IMAGES 10000
 #define BMP_SIZE 391734
+/* PNG needs the frame snapshot plus the encoder state. */
+#define SHOT_MEM (PNG_SCRATCH_SIZE > BMP_SIZE ? PNG_SCRATCH_SIZE : BMP_SIZE)
 
 // file paths and files
 char eboot_path[128];
@@ -92,13 +95,13 @@ int take_shot(const char *path) {
 	SceUID block_id = -1;
 	int frame_width, pixel_format;
 	unsigned int ptr;
-	void *mem = get_mem(BMP_SIZE, &block_id);
+	void *mem = get_mem(SHOT_MEM, &block_id);
 	if(mem) {
 		sceDisplayWaitVblankStart();
 		if(sceDisplayGetFrameBuf(&frame_addr, &frame_width, &pixel_format, PSP_DISPLAY_SETBUF_NEXTFRAME) >= 0 && frame_addr) {
 			ptr = (unsigned int)frame_addr;
 			ptr |= ptr & 0x80000000 ?  0xA0000000 : 0x40000000;
-			bitmapWrite((void *)ptr, mem, pixel_format, path);
+			pngWrite((void *)ptr, mem, frame_width, pixel_format, path);
 			block_id >= 0 ? kfree(block_id) : kfree_volatile();
 			return 0;
 		}
@@ -278,7 +281,7 @@ static inline void read_settings(const char *argp) {
     kprintf("Read ScreenshotKey: %08X\n", key_button);
     key_timeout = ini_getl("General", "KeyTimeout", 0, ini_path);
     kprintf("Read KeyTimeout: %08X\n", key_timeout);
-    ini_gets("General", "ScreenshotName", "%s/pic_%04d.bmp", picture, sizeof(picture), ini_path);
+    ini_gets("General", "ScreenshotName", "%s/pic_%04d.png", picture, sizeof(picture), ini_path);
     kprintf("Read ScreenshotName: %s\n", picture);
     force_ms0 = ini_getbool("General", "PSPGoUseMS0", 0, ini_path);
     clear_cache = ini_getbool("General", "XMBClearCache", 0, ini_path);
