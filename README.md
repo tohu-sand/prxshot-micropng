@@ -57,21 +57,21 @@ result can be checked against any PNG decoder.
 
 Copy these to `ms0:/seplugins/` (or wherever you keep plugins):
 
-- `prxshot.prx` — the plugin
-- `prxshot.ini` — configuration
+- `prxshot-micropng.prx` — the plugin
+- `prxshot-micropng.ini` — configuration
 - `default_icon0.png` — icon used for homebrew that has none
 - `xmb.sfo` — template for the folder icon in VSH mode
 
 Then add the plugin to `game.txt` (and `vsh.txt` if you want XMB screenshots):
 
 ```
-ms0:/seplugins/prxshot.prx 1
+ms0:/seplugins/prxshot-micropng.prx 1
 ```
 
 On ARK-4 and similar, add it to `PLUGINS.TXT` instead:
 
 ```
-game, ms0:/SEPLUGINS/prxshot.prx, on
+game, ms0:/SEPLUGINS/prxshot-micropng.prx, on
 ```
 
 Press the **NOTE** button to take a screenshot. Files are written to:
@@ -83,7 +83,7 @@ ms0:/PSP/SCREENSHOT/<GAME_ID>/pic_0000.png
 Homebrew and PBP games share a game id, so they get a folder named
 `PS<8 hex digits>` derived from the title instead.
 
-## Configuration (`prxshot.ini`)
+## Configuration (`prxshot-micropng.ini`)
 
 `[General]`
 

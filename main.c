@@ -276,7 +276,7 @@ static inline void boot_info() {
 #endif
 
 static inline void read_settings(const char *argp) {
-    create_path(ini_path, argp, "prxshot.ini");
+    create_path(ini_path, argp, "prxshot-micropng.ini");
     key_button = ini_getlhex("General", "ScreenshotKey", PSP_CTRL_NOTE, ini_path);
     kprintf("Read ScreenshotKey: %08X\n", key_button);
     key_timeout = ini_getl("General", "KeyTimeout", 0, ini_path);

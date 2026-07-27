@@ -54,21 +54,21 @@ libpngとzlibはスタックを数KB、作業メモリを約300KB要求するた
 
 次のファイルを `ms0:/seplugins/`（プラグインを置いている場所）にコピーします。
 
-- `prxshot.prx` — プラグイン本体
-- `prxshot.ini` — 設定ファイル
+- `prxshot-micropng.prx` — プラグイン本体
+- `prxshot-micropng.ini` — 設定ファイル
 - `default_icon0.png` — アイコンを持たないhomebrew用の代替アイコン
 - `xmb.sfo` — VSHモードでのフォルダアイコン用テンプレート
 
 そのうえで `game.txt`（XMBでも撮りたい場合は `vsh.txt` にも）へ追記します。
 
 ```
-ms0:/seplugins/prxshot.prx 1
+ms0:/seplugins/prxshot-micropng.prx 1
 ```
 
 ARK-4などでは代わりに `PLUGINS.TXT` へ追記します。
 
 ```
-game, ms0:/SEPLUGINS/prxshot.prx, on
+game, ms0:/SEPLUGINS/prxshot-micropng.prx, on
 ```
 
 **NOTE（♪）ボタン**で撮影します。保存先は次のとおりです。
@@ -80,7 +80,7 @@ ms0:/PSP/SCREENSHOT/<ゲームID>/pic_0000.png
 homebrewとPBP形式のゲームはIDが共通のため、タイトルから生成した
 `PS<16進8桁>` という名前のフォルダになります。
 
-## 設定 (`prxshot.ini`)
+## 設定 (`prxshot-micropng.ini`)
 
 `[General]`
 

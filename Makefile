@@ -1,4 +1,4 @@
-TARGET = prxshot
+TARGET = prxshot-micropng
 OBJS = main.o bitmap.o micropng.o png_write.o imports.o exports.o sfo.o pbp.o kalloc.o minIni.o logger.o
 LIBS =
 MININI_DEFINES = -DNDEBUG -DINI_READONLY -DINI_FILETYPE=SceUID -DPORTABLE_STRNICMP -DINI_NOFLOAT
