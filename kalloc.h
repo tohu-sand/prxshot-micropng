@@ -21,6 +21,9 @@
 #define KALLOC_H_
 
 #include <pspsysmem.h>
+#include <pspmodulemgr.h>
+#include <pspkerneltypes.h>
+#include <psputils.h>
 #include <pspsuspend.h>
 
 void *kalloc(SceSize size, const char *name, int *id, int part, int type);

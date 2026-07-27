@@ -27,7 +27,7 @@ void *kalloc(SceSize size, const char *name, int *id, int part, int type) {
         block = sceKernelGetBlockHeadAddr(*id);
     return (void *)(((u32)block + 63) & ~63);
 }
-inline void kfree(int id) {
+void kfree(int id) {
     sceKernelFreePartitionMemory(id);
 }
 
@@ -37,6 +37,6 @@ void *kalloc_volatile() {
     return !sceKernelVolatileMemTryLock(0, &block, &size) ? block : NULL;
 }
 
-inline void kfree_volatile() {
+void kfree_volatile() {
     sceKernelVolatileMemUnlock(0);
 }

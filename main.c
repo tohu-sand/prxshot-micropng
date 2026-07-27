@@ -240,7 +240,7 @@ int module_start_handler(SceModule2 *module) {
 }
 
 #ifdef KPRINTF_ENABLED
-inline void boot_info() {
+static inline void boot_info() {
     int boot = sceKernelBootFrom();
     int key = sceKernelInitKeyConfig();
     switch(boot) {
@@ -272,7 +272,7 @@ inline void boot_info() {
 }
 #endif
 
-inline void read_settings(const char *argp) {
+static inline void read_settings(const char *argp) {
     create_path(ini_path, argp, "prxshot.ini");
     key_button = ini_getlhex("General", "ScreenshotKey", PSP_CTRL_NOTE, ini_path);
     kprintf("Read ScreenshotKey: %08X\n", key_button);
@@ -290,7 +290,7 @@ inline void read_settings(const char *argp) {
     }
 }
 
-inline int refresh_directory(const char *dir) {
+static inline int refresh_directory(const char *dir) {
     if(sceKernelInitKeyConfig() == PSP_INIT_KEYCONFIG_VSH) {
         SceUID dfd = sceIoDopen(dir);
         if(dfd >= 0) {

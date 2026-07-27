@@ -50,10 +50,14 @@
   #define _tcsicmp  stricmp
   #define _tcslen   strlen
   #define _tcsncpy  strncpy
+  int strnicmp(const TCHAR *s1, const TCHAR *s2, size_t n);
   #define _tcsnicmp strnicmp
   #define _tcsrchr  strrchr
   #define _tcstol   strtol
   #define _tcstod   strtod
+/* kernel libc mode has no _ctype_ table */
+#undef toupper
+#define toupper(c) (((c) >= 'a' && (c) <= 'z') ? ((c) - 'a' + 'A') : (c))
   #define _totupper toupper
   #define _stprintf sprintf
   #define _tfgets   fgets

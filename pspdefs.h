@@ -77,7 +77,7 @@ typedef int (* STMOD_HANDLER)(SceModule2 *);
 
 int sceKernelGetModel();
 char *sceKernelGetUMDData(void);
-unsigned int sceKernelQuerySystemCall(void * function);
+/* provided by pspintrman_kernel.h in current SDKs */
 STMOD_HANDLER sctrlHENSetStartModuleHandler(STMOD_HANDLER handler);
 
 #endif /* PSPDEFS_H_ */
