@@ -1,109 +1,79 @@
 # prxshot-micropng
 
-**Languages:** [English](README.md) | [日本語](README.ja.md)
+[English](README.md) | [日本語](README.ja.md)
 
-A PSP screenshot plugin that saves **PNG** instead of BMP.
+A PSP screenshot plugin based on [prxshot](https://github.com/codestation/prxshot)
+by codestation. It captures the screen without pausing the game and saves
+480×272 screenshots as lossless PNG files, organized into folders with each
+game's title and icon.
 
-This is a fork of [prxshot](https://github.com/codestation/prxshot) by
-**codestation**. Everything that makes prxshot pleasant to use is unchanged: it
-captures without pausing the game, so it works during online play, and it sorts
-screenshots into per-game folders using each game's own title and icon.
-
-The only functional change is the output format. A 480x272 screenshot drops
-from a fixed 383 KB BMP to roughly 60 KB, and stays lossless.
-
-| | prxshot | prxshot-micropng |
-|---|---|---|
-| Output | BMP | PNG (lossless) |
-| Typical size | 383 KB | ~60 KB |
-| Plugin size | 17 KB | 21 KB |
-
-## Relation to PRXShot-png
-
-**PRXShot-png** by **yuh0q223** got there first: a well known Japanese fork of
-prxshot that also writes PNG, and the reason this one exists. Its original site
-is gone; [GameBrew](https://www.gamebrew.org/wiki/PRXShot-png_PSP) still hosts
-v1.1.
-
-PRXShot-png links libpng and zlib, which is the natural choice on a desktop but
-grows the plugin to roughly 243 KB. There are also reports of captures failing
-inside games while XMB captures keep working, the first attempt leaving a
-corrupt file and later attempts doing nothing.
-
-This fork writes the PNG itself instead, sized for where the code actually
-runs. It stays close to upstream prxshot: the capture path, the game-id folders
-and the PSCM.DAT handling are untouched, and only the file format changes.
-
-## The encoder
-
-A screenshot plugin runs in kernel mode on threads with a 4 KB stack, and
-libpng with zlib wants several kilobytes of stack and around 300 KB of working
-memory. `micropng` is a PNG writer written for those constraints:
-
-- No libpng, no zlib, no floating point, no recursion, no `malloc`
-- Deflate (fixed Huffman with LZ77) and the PNG filters are implemented directly
-- Peak stack use measured at ~300 bytes, against the 4 KB the thread has
-- All state lives in one caller-owned block, so nothing large touches the stack
-
-The frame is copied to memory in a single fast pass before compression starts.
-Compressing straight off the display buffer would tear, because the game keeps
-drawing while the encoder works.
-
-`micropng.c` and `micropng.h` are self contained and portable; they build and
-run on a host as well, and `test/host_test.c` encodes a raw RGB file so the
-result can be checked against any PNG decoder.
+PNG support was inspired by PRXShot-png by yuh0q223.
 
 ## Installation
 
-Copy these to `ms0:/seplugins/` (or wherever you keep plugins):
+Copy these files to the same directory, such as `ms0:/seplugins/`:
 
-- `prxshot-micropng.prx` — the plugin
+- `prxshot-micropng.prx` — plugin
 - `prxshot-micropng.ini` — configuration
-- `default_icon0.png` — icon used for homebrew that has none
-- `xmb.sfo` — template for the folder icon in VSH mode
+- `default_icon0.png` — fallback folder icon
+- `xmb.sfo` — folder metadata for XMB screenshots
 
-Then add the plugin to `game.txt` (and `vsh.txt` if you want XMB screenshots):
+Add the following line to `game.txt`. To capture the XMB, add it to `vsh.txt`
+as well:
 
-```
+```text
 ms0:/seplugins/prxshot-micropng.prx 1
 ```
 
-On ARK-4 and similar, add it to `PLUGINS.TXT` instead:
+For ARK-4, enable the plugin in games through `PLUGINS.TXT`:
 
-```
-game, ms0:/SEPLUGINS/prxshot-micropng.prx, on
+```text
+game, ms0:/seplugins/prxshot-micropng.prx, on
 ```
 
-Press the **NOTE** button to take a screenshot. Files are written to:
+If you install the plugin elsewhere, adjust the path accordingly.
 
-```
+## Usage
+
+Press the **NOTE (♪)** button to take a screenshot. The default output path is:
+
+```text
 ms0:/PSP/SCREENSHOT/<GAME_ID>/pic_0000.png
 ```
 
-Homebrew and PBP games share a game id, so they get a folder named
-`PS<8 hex digits>` derived from the title instead.
+PSP Go uses `ef0:/PSP/SCREENSHOT/` unless `PSPGoUseMS0` is enabled.
+XMB screenshots go in the `XMB` folder. Homebrew and PBP games use folder names
+derived from their titles: `PS<8 hex digits>`.
 
-## Configuration (`prxshot-micropng.ini`)
+## Configuration
 
-`[General]`
+Edit `prxshot-micropng.ini` beside the plugin. These settings belong in
+`[General]`:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `CreatePic1` | `0` | Set to `1` to also store the game's background image in the screenshot folder |
 | `PSPGoUseMS0` | `0` | Set to `1` on a PSP Go to save to the M2 card instead of internal storage |
-| `XMBClearCache` | `0` | Set to `1` to refresh the XMB cache after a shot. Fixes new screenshots not appearing, but can freeze with Game Categories |
-| `ScreenshotKey` | `0x800000` | Button, or a combination, that triggers a capture |
-| `KeyTimeout` | `0` | Delay in milliseconds between the key press and the capture |
-| `ScreenshotName` | `%s/pic_%04d.png` | Filename pattern. `%s/`, `%04d` and the extension are required, in that order |
+| `XMBClearCache` | `0` | Set to `1` to refresh the XMB cache after a screenshot; may conflict with Game Categories |
+| `ScreenshotKey` | `0x800000` | Button or button combination used to take a screenshot |
+| `KeyTimeout` | `0` | How long the buttons must be held before capture, in milliseconds |
+| `ScreenshotName` | `%s/pic_%04d.png` | Filename pattern; keep `%s/`, `%04d` and `.png` in this order |
 
-`[CustomKeys]` and `[CustomTimeout]` take a game id and override the key or the
-timeout for that game only:
+`CreatePic1` is read separately from `[General]` in `prxshot.ini` beside the
+plugin, not from `prxshot-micropng.ini`. It defaults to `1`, which includes the
+game's background image in the folder metadata. Set it to `0` to omit that image.
 
+Use `[CustomKeys]` and `[CustomTimeout]` to override the button combination
+and hold time for a game ID:
+
+```ini
+[CustomKeys]
+ULJM05800 = 0x000009 # SELECT + START
+
+[CustomTimeout]
+ULJM05800 = 1000
 ```
-ULJM05800 = 0x000009   # SELECT + START
-```
 
-Button values:
+Add the button values together to form a combination:
 
 | Button | Value | Button | Value |
 |---|---|---|---|
@@ -118,33 +88,26 @@ Button values:
 
 ## Building
 
-With the [pspdev](https://github.com/pspdev/pspdev) toolchain installed:
+Install the [pspdev](https://github.com/pspdev/pspdev) toolchain, then run:
 
 ```sh
 export PSPDEV=/path/to/pspdev
-export PATH=$PSPDEV/bin:$PATH
+export PATH="$PSPDEV/bin:$PATH"
 make
 ```
 
-The encoder can also be exercised on a host, which is the quickest way to
-check a change:
+The `micropng` encoder has no libpng or zlib dependency and can also be built
+on a host. The following example converts a 480×272 raw RGB image to PNG.
+The input must contain three bytes per pixel, in R, G, B order:
 
 ```sh
 gcc -std=c99 -Wall -Wextra -O2 -I. -o host_test micropng.c test/host_test.c
 ./host_test frame.rgb 480 272 out.png
 ```
 
-## Changes from upstream
-
-- Screenshots are written as PNG (`micropng.c`, `micropng.h`, `png_write.c`, `png_write.h`)
-- `ScreenshotName` defaults to `.png`
-- Builds with current pspdev toolchains: C99 `inline` linkage, headers that moved
-  between SDK versions, and `toupper` in kernel libc mode where the `_ctype_`
-  table is unavailable
-
 ## License
 
-GPLv3, inherited from prxshot. See [LICENSE](LICENSE) for the full text.
+GPLv3 or later, inherited from prxshot. See [LICENSE](LICENSE).
 
 - prxshot: Copyright (C) 2011 Codestation
 - PNG support: Copyright (C) 2026 豆腐さんど (tohu_sand)

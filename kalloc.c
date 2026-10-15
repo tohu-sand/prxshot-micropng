@@ -19,7 +19,6 @@
 
 #include "kalloc.h"
 
-// get a block of memory 64-byte aligned
 void *kalloc(SceSize size, const char *name, int *id, int part, int type) {
     void *block = NULL;
     *id = sceKernelAllocPartitionMemory(part, name, type, size + 63, NULL);
@@ -27,6 +26,7 @@ void *kalloc(SceSize size, const char *name, int *id, int part, int type) {
         block = sceKernelGetBlockHeadAddr(*id);
     return (void *)(((u32)block + 63) & ~63);
 }
+
 void kfree(int id) {
     sceKernelFreePartitionMemory(id);
 }

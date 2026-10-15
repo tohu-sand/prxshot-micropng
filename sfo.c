@@ -25,12 +25,9 @@
 
 int read_sfo_id(SceUID fd, char *buffer, int size, char *id_buf, int id_size) {
     struct sfo *sfo_data = (struct sfo *)buffer;
-    // read the sfo header
     sceIoRead(fd, sfo_data, sizeof(struct sfo));
-    // allocate memory to read the sfo block
     void *sfo_block = buffer + size;
     sceIoRead(fd, sfo_block, size);
-    // get the sfo index table inside the block
     struct sfo_index *index_block = sfo_block;
     unsigned int keys_offset_block = sizeof(struct sfo) + (sizeof(struct sfo_index) * sfo_data->pair_count);
     void *value_block = sfo_block + sfo_data->value_offset - sizeof(struct sfo);
@@ -47,12 +44,9 @@ int read_sfo_id(SceUID fd, char *buffer, int size, char *id_buf, int id_size) {
 
 int read_sfo_title(SceUID fd, char *buffer, int size, char *id_buf, int id_size) {
     struct sfo *sfo_data = (struct sfo *)buffer;
-    // read the sfo header
     sceIoRead(fd, sfo_data, sizeof(struct sfo));
-    // allocate memory to read the sfo block
     void *sfo_block = buffer + size;
     sceIoRead(fd, sfo_block, size);
-    // get the sfo index table inside the block
     struct sfo_index *index_block = sfo_block;
     unsigned int keys_offset_block = sizeof(struct sfo) + (sizeof(struct sfo_index) * sfo_data->pair_count);
     void *value_block = sfo_block + sfo_data->value_offset - sizeof(struct sfo);
@@ -69,12 +63,9 @@ int read_sfo_title(SceUID fd, char *buffer, int size, char *id_buf, int id_size)
 
 int read_sfo(SceUID fd, char *buffer, int size) {
     struct sfo *sfo_data = (struct sfo *)buffer;
-    // read the sfo header
     sceIoRead(fd, sfo_data, sizeof(struct sfo));
-    // allocate memory to read the sfo block
     void *sfo_block = buffer + size;
     sceIoRead(fd, sfo_block, size);
-    // get the sfo index table inside the block
     struct sfo_index *index_block = sfo_block;
     unsigned int keys_offset_block = sizeof(struct sfo) + (sizeof(struct sfo_index) * sfo_data->pair_count);
     struct sfo_index *index_buffer = (struct sfo_index *)(buffer + sizeof(struct sfo));
@@ -97,11 +88,9 @@ int read_sfo(SceUID fd, char *buffer, int size) {
                 memcpy(value_buffer, value_block, value_size);
             } else if(index_block[i].data_type == 2) {
                 value_size = index_block[i].value_size_with_padding;
-                // force the TITLE value to 128 bytes
                 memset(value_buffer, 0, 128);
                 if(index_buffer[keys_count].value_size == strlen(value_block)) {
-                    // bugged sfo, while it works for the Game menu, it doesnt
-                    // for the pictures directory
+                    /* The Photo menu requires TITLE's size to include the terminator. */
                     index_buffer[keys_count].value_size++;
                     value_size++;
                 }
@@ -116,7 +105,6 @@ int read_sfo(SceUID fd, char *buffer, int size) {
         }
         value_block += index_block[i].value_size_with_padding;
     }
-    // write VERSION key/value
     struct sfo_index *version = &index_buffer[keys_count];
     version->key_offset = keys_offset;
     version->alignment = 4;
@@ -128,9 +116,8 @@ int read_sfo(SceUID fd, char *buffer, int size) {
     strcpy(keys_buffer_start + keys_offset, "VERSION");
     int ver = 0x10000;
     memcpy(value_buffer, &ver, 4);
-    // set the SFO to 3 keys
     sfo_data->key_offset = 68;
     sfo_data->value_offset = 100;
     sfo_data->pair_count = 3;
-	return SFO_SIZE;
+    return SFO_SIZE;
 }

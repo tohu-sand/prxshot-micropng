@@ -31,7 +31,7 @@ struct sfo_index {
     unsigned int value_size;
     unsigned int value_size_with_padding;
     unsigned int data_offset;
-}__attribute__((packed));
+} __attribute__((packed));
 
 struct sfo {
     char id[4];
@@ -39,7 +39,7 @@ struct sfo {
     unsigned int key_offset;
     unsigned int value_offset;
     unsigned int pair_count;
-}__attribute__((packed));
+} __attribute__((packed));
 
 int read_sfo(SceUID fd, char *buffer, int size);
 int read_sfo_id(SceUID fd, char *buffer, int size, char *id_buf, int id_size);

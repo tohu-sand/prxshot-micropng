@@ -35,7 +35,7 @@ struct pbp {
     unsigned int snd0_offset;
     unsigned int psp_offset;
     unsigned int psar_offset;
-}__attribute__((packed));
+} __attribute__((packed));
 
 void write_pbp(const char *path, const char *eboot, void *argp);
 void *create_path(void *buffer, const char *argp, const char *file);

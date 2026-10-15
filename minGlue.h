@@ -1,7 +1,4 @@
-/*  Glue functions for the minIni library, based on the C/C++ stdio library
- *
- *  Or better said: this file contains macros that maps the function interface
- *  used by minIni to the standard C/C++ file I/O functions.
+/*  PSP file I/O bindings for minIni.
  *
  *  Copyright (c) CompuPhase, 2008-2011
  *
@@ -20,14 +17,13 @@
  *  Version: $Id: minGlue.h 31 2011-01-28 10:46:16Z thiadmer.riemersma $
  */
 
-/* map required file I/O to the standard C library */
 #include <pspiofilemgr.h>
 
-#define ini_openread(filename,file)   ((*(file) = sceIoOpen((filename),PSP_O_RDONLY, 0777)) >= 0)
-#define ini_openwrite(filename,file)  ((*(file) = fopen((filename),"wt")) != NULL)
+#define ini_openread(filename, file)   ((*(file) = sceIoOpen((filename), PSP_O_RDONLY, 0777)) >= 0)
+#define ini_openwrite(filename, file)  ((*(file) = fopen((filename), "wt")) != NULL)
 #define ini_close(file)               sceIoClose(*(file))
-#define ini_read(buffer,size,file)    _fgets((buffer),(size),*(file))
-#define ini_write(buffer,file)        fputs((buffer),*(file))
-#define ini_rename(source,dest)       rename((source),(dest))
+#define ini_read(buffer, size, file)    _fgets((buffer), (size), *(file))
+#define ini_write(buffer, file)        fputs((buffer), *(file))
+#define ini_rename(source, dest)       rename((source), (dest))
 #define ini_remove(filename)          remove(filename)
 #define ini_rewind(file)              rewind(*(file))

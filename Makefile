@@ -3,13 +3,12 @@ OBJS = main.o bitmap.o micropng.o png_write.o imports.o exports.o sfo.o pbp.o ka
 LIBS =
 MININI_DEFINES = -DNDEBUG -DINI_READONLY -DINI_FILETYPE=SceUID -DPORTABLE_STRNICMP -DINI_NOFLOAT
 CFLAGS = -Os -G0 -Wall -std=c99 $(MININI_DEFINES)
-# -DKPRINTF_ENABLED
 ASFLAGS = $(CFLAGS)
 
 USE_KERNEL_LIBC = 1
 USE_KERNEL_LIBS = 1
 
-PSP_FW_VERSION=500
+PSP_FW_VERSION = 500
 
-PSPSDK=$(shell psp-config --pspsdk-path)
+PSPSDK = $(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build_prx.mak

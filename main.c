@@ -45,10 +45,8 @@ PSP_HEAP_SIZE_KB(8);
 #define SHOT_BLK_NAME "shot_blk"
 #define MAX_IMAGES 10000
 #define BMP_SIZE 391734
-/* PNG needs the frame snapshot plus the encoder state. */
 #define SHOT_MEM (PNG_SCRATCH_SIZE > BMP_SIZE ? PNG_SCRATCH_SIZE : BMP_SIZE)
 
-// file paths and files
 char eboot_path[128];
 char ini_path[128];
 char screenshot_filename[64];
@@ -64,7 +62,6 @@ STMOD_HANDLER previous = NULL;
 int module_found = 0;
 int umd_need_gameid = 0;
 
-// prxshot.ini settings
 int key_button;
 int force_ms0;
 int clear_cache;
@@ -76,66 +73,63 @@ void *get_mem(SceSize size, int *id) {
     void *mem = NULL;
     int api = sceKernelInitKeyConfig();
     if((game_found || api == PSP_INIT_KEYCONFIG_VSH) && sceKernelGetModel() >= PSP_MODEL_SLIM) {
-        // use the umd cache only if is a game and slim or superior
         mem = kalloc(size, SHOT_BLK_NAME, id, PSP_MEMORY_PARTITION_UMDCACHE, PSP_SMEM_Low);
     }
     if(!mem) {
-        // else get the memory from kernel
         mem = kalloc(size, SHOT_BLK_NAME, id, PSP_MEMORY_PARTITION_KERNEL, PSP_SMEM_Low);
         if(!mem && api == PSP_INIT_KEYCONFIG_GAME) {
-            // as a last resort, use the volatile mem
             mem = kalloc_volatile();
         }
     }
-	return mem;
+    return mem;
 }
 
 int take_shot(const char *path) {
-	void *frame_addr;
-	SceUID block_id = -1;
-	int frame_width, pixel_format;
-	unsigned int ptr;
-	void *mem = get_mem(SHOT_MEM, &block_id);
-	if(mem) {
-		sceDisplayWaitVblankStart();
-		if(sceDisplayGetFrameBuf(&frame_addr, &frame_width, &pixel_format, PSP_DISPLAY_SETBUF_NEXTFRAME) >= 0 && frame_addr) {
-			ptr = (unsigned int)frame_addr;
-			ptr |= ptr & 0x80000000 ?  0xA0000000 : 0x40000000;
-			pngWrite((void *)ptr, mem, frame_width, pixel_format, path);
-			block_id >= 0 ? kfree(block_id) : kfree_volatile();
-			return 0;
-		}
-	}
-	return -1;
+    void *frame_addr;
+    SceUID block_id = -1;
+    int frame_width, pixel_format;
+    unsigned int ptr;
+    void *mem = get_mem(SHOT_MEM, &block_id);
+    if(mem) {
+        sceDisplayWaitVblankStart();
+        if(sceDisplayGetFrameBuf(&frame_addr, &frame_width, &pixel_format, PSP_DISPLAY_SETBUF_NEXTFRAME) >= 0 && frame_addr) {
+            ptr = (unsigned int)frame_addr;
+            ptr |= ptr & 0x80000000 ? 0xA0000000 : 0x40000000;
+            pngWrite((void *)ptr, mem, frame_width, pixel_format, path);
+            block_id >= 0 ? kfree(block_id) : kfree_volatile();
+            return 0;
+        }
+    }
+    return -1;
 }
 
 int update_filename(const char *basedir, char *filename) {
-	int end = last_id;
-	do {
-		sprintf(filename, picture, basedir, last_id++);
-		if(last_id == MAX_IMAGES)
-			last_id = 0;
-		SceUID fd = sceIoOpen(filename, PSP_O_RDONLY, 0777);
-		if(fd < 0) {
-			return last_id;
-		}
-		sceIoClose(fd);
-	} while(end != last_id);
-	return -1;
+    int end = last_id;
+    do {
+        sprintf(filename, picture, basedir, last_id++);
+        if(last_id == MAX_IMAGES)
+            last_id = 0;
+        SceUID fd = sceIoOpen(filename, PSP_O_RDONLY, 0777);
+        if(fd < 0) {
+            return last_id;
+        }
+        sceIoClose(fd);
+    } while(end != last_id);
+    return -1;
 }
 
 int get_eboot_gameid(char *buffer) {
     char gameid[12];
     if(*eboot_path) {
-	    kprintf("using %s as eboot path\n", eboot_path);
+        kprintf("using %s as eboot path\n", eboot_path);
         if(generate_gameid(eboot_path, gameid, sizeof(gameid))) {
             kprintf("Got gameid: %s\n", gameid);
             strcpy(buffer, gameid);
             game_found = 1;
             return 1;
         }
-	}
-	return 0;
+    }
+    return 0;
 }
 
 int get_umd_gameid(char *buffer) {
@@ -166,12 +160,12 @@ int build_gamedir(char *dir, const char *argp) {
         strcpy(dir, model == PSP_MODEL_GO ? PICTURE_DIR_GO : PICTURE_DIR_MS);
         kprintf("Creating base directory %s\n", dir);
         sceIoMkdir(dir, 0777);
-        strcat(dir,"/");
+        strcat(dir, "/");
         if(sceKernelInitKeyConfig() == PSP_INIT_KEYCONFIG_VSH) {
             strcat(dir, "XMB");
         } else if(*gameid) {
             strcat(dir, gameid);
-        } else if(!get_eboot_gameid(dir + strlen(model == PSP_MODEL_GO ? PICTURE_DIR_GO : PICTURE_DIR_MS)+1)) {
+        } else if(!get_eboot_gameid(dir + strlen(model == PSP_MODEL_GO ? PICTURE_DIR_GO : PICTURE_DIR_MS) + 1)) {
             strcat(dir, "Homebrew");
         }
         kprintf("Creating directory %s\n", dir);
@@ -181,7 +175,7 @@ int build_gamedir(char *dir, const char *argp) {
     return 0;
 }
 
-// this causes problems to game categories D:
+/* Cache refresh can conflict with Game Categories. */
 void update_xmb_cache() {
     if(clear_cache && sceKernelInitKeyConfig() == PSP_INIT_KEYCONFIG_VSH) {
         kprintf("Refreshing the xmb cache\n");
@@ -192,7 +186,6 @@ void update_xmb_cache() {
 int pbp_thread_start(SceSize args, void *argp) {
     kprintf("pbp_thread_start called\n");
     write_pbp(screenshot_basedir, *eboot_path ? eboot_path : NULL, argp);
-    // refresh the cache after creating the PSCM.DAT
     update_xmb_cache();
     return 0;
 }
@@ -213,22 +206,18 @@ int module_start_handler(SceModule2 *module) {
             directory_ready = 0;
             module_found = 1;
         } else if(sceKernelInitKeyConfig() == PSP_INIT_KEYCONFIG_GAME) {
-            // user module found
             if((module->text_addr & 0x80000000) != 0x80000000) {
                 kprintf("User module found\n");
+                /* ISO loaders need the disc ID, not the loader EBOOT ID. */
                 if(!strcmp(module->modname, "aLoader") ||
-                // blacklist open idea loader
-                !strcmp(module->modname, "OpenIdeaController") ||
-                !strcmp(module->modname, "ISO Loader Eboot") ||
-                // blacklist the Prometheus iso loader
-                !strcmp(module->modname, "PLoaderGUI")) {
-                    // loader found, so a ISO has been loaded
+                   !strcmp(module->modname, "OpenIdeaController") ||
+                   !strcmp(module->modname, "ISO Loader Eboot") ||
+                   !strcmp(module->modname, "PLoaderGUI")) {
                     kprintf("Loader detected: %s\n", module->modname);
                     module_found = 1;
                     umd_need_gameid = 1;
                     directory_ready = 0;
                 } else if(strcmp(module->modname, "sceKernelLibrary")) {
-                    // eboot found
                     kprintf("EBOOT detected\n");
                     module_found = 1;
                     eboot_found = 1;
@@ -247,31 +236,31 @@ static inline void boot_info() {
     int boot = sceKernelBootFrom();
     int key = sceKernelInitKeyConfig();
     switch(boot) {
-        case PSP_BOOT_MS:
-            kprintf("Booting from Memory Stick\n");
-            break;
-        case PSP_BOOT_DISC:
-            kprintf("Booting from UMD\n");
-            break;
-        case PSP_BOOT_FLASH:
-            kprintf("Booting from Flash\n");
-            break;
-        default:
-            kprintf("Booting from: %i\n", boot);
+    case PSP_BOOT_MS:
+        kprintf("Booting from Memory Stick\n");
+        break;
+    case PSP_BOOT_DISC:
+        kprintf("Booting from UMD\n");
+        break;
+    case PSP_BOOT_FLASH:
+        kprintf("Booting from Flash\n");
+        break;
+    default:
+        kprintf("Booting from: %i\n", boot);
     }
     switch(key) {
-        case PSP_INIT_KEYCONFIG_GAME:
-            kprintf("Init mode: Game\n");
-            break;
-        case PSP_INIT_KEYCONFIG_VSH:
-            kprintf("Init mode: VSH\n");
-            break;
-        case PSP_INIT_KEYCONFIG_POPS:
-            kprintf("Init mode: POPS\n");
-            break;
-        default:
-            kprintf("Init mode: %i\n", key);
-        }
+    case PSP_INIT_KEYCONFIG_GAME:
+        kprintf("Init mode: Game\n");
+        break;
+    case PSP_INIT_KEYCONFIG_VSH:
+        kprintf("Init mode: VSH\n");
+        break;
+    case PSP_INIT_KEYCONFIG_POPS:
+        kprintf("Init mode: POPS\n");
+        break;
+    default:
+        kprintf("Init mode: %i\n", key);
+    }
 }
 #endif
 
@@ -288,7 +277,6 @@ static inline void read_settings(const char *argp) {
     kprintf("Read XMBClearCache: %i\n", clear_cache);
     if(force_ms0) {
         kprintf("PSPGoUseMS0 enabled, forcing ms0\n");
-        //Make sure that the /PSP directory exists first
         sceIoMkdir("ms0:/PSP", 0777);
     }
 }
@@ -336,107 +324,92 @@ int isButtonPressed(int buttons, int mask) {
 }
 
 int thread_start(SceSize args, void *argp) {
-    // read config file
     kprintf("PRXshot main thread started\n");
 #ifdef KPRINTF_ENABLED
     boot_info();
 #endif
-    // get custom settings from prxshot.ini
     read_settings(argp);
-    // clear buffer
     memset(eboot_path, 0, sizeof(eboot_path));
     if(sceKernelInitKeyConfig() != PSP_INIT_KEYCONFIG_VSH) {
         if(sceKernelBootFrom() != PSP_BOOT_DISC) {
             kprintf("Booting from Memory Stick/Internal Storage\n");
             previous = sctrlHENSetStartModuleHandler(module_start_handler);
-        }else {
+        } else {
             umd_need_gameid = 1;
         }
     }
-    // current screenshot number
-	int picture_id = 0;
-	// flag for checking if the pbp needs to be created
-	int pbp_created = 0;
-	kprintf("Entering screenshot loop\n");
-	while(picture_id >= 0) {
-		SceCtrlData pad;
-		sceCtrlPeekBufferPositive(&pad, 1);
-		if(pad.Buttons) {
-		    if(umd_need_gameid) {
-		        if(get_umd_gameid(gameid)) {
-		            *eboot_path = '\0';
-		            umd_need_gameid = 0;
-		            directory_ready = 0;
-		            // get a custom key press for this specific game
-		            key_button = ini_getlhex("CustomKeys", gameid, key_button, ini_path);
-		            key_timeout = ini_getl("CustomTimeout", gameid, key_timeout, ini_path);
-		            kprintf("Got custom key button for %s: %08X\n", gameid, key_button);
-		            kprintf("Got custom key timeout for %s: %u\n", gameid, key_timeout);
-		        }
-		    } else if(eboot_found) {
-		        if(read_gameid(eboot_path, gameid, sizeof(gameid))) {
-		            key_button = ini_getlhex("CustomKeys", gameid, key_button, ini_path);
-		            key_timeout = ini_getl("CustomTimeout", gameid, key_timeout, ini_path);
-		            kprintf("Got custom key button for %s: %08X\n", gameid, key_button);
-		            kprintf("Got custom key timeout for %s: %u\n", gameid, key_timeout);
-		        }
-		        //FIXME: there isn't a way to migrate from the old generated
-		        //gameid for game eboots so we tell that we haven't found it
-		        *gameid = '\0';
-		        eboot_found = 0;
-		    }
-		    // check if the button combination is correct
-            //if((pad.Buttons & key_button) == key_button) {
-		    if(isButtonPressed(pad.Buttons, key_button)) {
-			    // attempt to create a screenshot directory
-			    if(build_gamedir(screenshot_basedir, argp)) {
-			        // if it was susseful then reset the image counter
-			        last_id = 0;
-			        kprintf("New screenshot dir created, new pbp needed\n");
-			        picture_id = update_filename(screenshot_basedir, screenshot_filename);
-			        pbp_created = 0;
-			    }
-				// recreate the XMB screenshot directory if is deleted
-			    if(refresh_directory(screenshot_basedir)) {
-			        last_id = 0;
-			        pbp_created = 0;
-			    }
-				kprintf("Taking shot: %s\n", screenshot_filename);
-				// take the screenshot
-				if(take_shot(screenshot_filename) == 0) {
-				    kprintf("Screenshot OK\n");
-				} else {
-				    kprintf("Screenshot fail\n");
-				}
-				//update the filename and wait for the next shot
-				picture_id = update_filename(screenshot_basedir, screenshot_filename);
-				//launch a thread after the first shot to create the PSCM.DAT
-				if(!pbp_created) {
-				    SceUID thid = sceKernelCreateThread("pbp_thread", pbp_thread_start, 0x20, 4096, 0, 0);
-				    if(thid >= 0) {
-				        sceKernelStartThread(thid, args, argp);
-				    } else {
-				        kprintf("Failed to start thread: %08X\n", thid);
-				    }
-				    pbp_created = 1;
-				} else {
-				    update_xmb_cache();
-				}
-			}
-		}
-		sceKernelDelayThread(100000); //1.000.000 = 1 seg
-	}
-	return 0;
+    int picture_id = 0;
+    int pbp_created = 0;
+    kprintf("Entering screenshot loop\n");
+    while(picture_id >= 0) {
+        SceCtrlData pad;
+        sceCtrlPeekBufferPositive(&pad, 1);
+        if(pad.Buttons) {
+            if(umd_need_gameid) {
+                if(get_umd_gameid(gameid)) {
+                    *eboot_path = '\0';
+                    umd_need_gameid = 0;
+                    directory_ready = 0;
+                    key_button = ini_getlhex("CustomKeys", gameid, key_button, ini_path);
+                    key_timeout = ini_getl("CustomTimeout", gameid, key_timeout, ini_path);
+                    kprintf("Got custom key button for %s: %08X\n", gameid, key_button);
+                    kprintf("Got custom key timeout for %s: %u\n", gameid, key_timeout);
+                }
+            } else if(eboot_found) {
+                if(read_gameid(eboot_path, gameid, sizeof(gameid))) {
+                    key_button = ini_getlhex("CustomKeys", gameid, key_button, ini_path);
+                    key_timeout = ini_getl("CustomTimeout", gameid, key_timeout, ini_path);
+                    kprintf("Got custom key button for %s: %08X\n", gameid, key_button);
+                    kprintf("Got custom key timeout for %s: %u\n", gameid, key_timeout);
+                }
+                /* Keep title-derived folders for existing PBP screenshots. */
+                *gameid = '\0';
+                eboot_found = 0;
+            }
+            if(isButtonPressed(pad.Buttons, key_button)) {
+                if(build_gamedir(screenshot_basedir, argp)) {
+                    last_id = 0;
+                    kprintf("New screenshot dir created, new pbp needed\n");
+                    picture_id = update_filename(screenshot_basedir, screenshot_filename);
+                    pbp_created = 0;
+                }
+                if(refresh_directory(screenshot_basedir)) {
+                    last_id = 0;
+                    pbp_created = 0;
+                }
+                kprintf("Taking shot: %s\n", screenshot_filename);
+                if(take_shot(screenshot_filename) == 0) {
+                    kprintf("Screenshot OK\n");
+                } else {
+                    kprintf("Screenshot fail\n");
+                }
+                picture_id = update_filename(screenshot_basedir, screenshot_filename);
+                if(!pbp_created) {
+                    SceUID thid = sceKernelCreateThread("pbp_thread", pbp_thread_start, 0x20, 4096, 0, 0);
+                    if(thid >= 0) {
+                        sceKernelStartThread(thid, args, argp);
+                    } else {
+                        kprintf("Failed to start thread: %08X\n", thid);
+                    }
+                    pbp_created = 1;
+                } else {
+                    update_xmb_cache();
+                }
+            }
+        }
+        sceKernelDelayThread(100000);
+    }
+    return 0;
 }
 
 int module_start(SceSize argc, void *argp) {
     kprintf(">>>>>>>>>>>>>>>>>\nPRXshot started\n");
-	SceUID thid = sceKernelCreateThread("prxshot", thread_start, 0x10, 4096, 0, 0);
-	if(thid >= 0)
-		sceKernelStartThread(thid, argc, argp);
-	return 0;
+    SceUID thid = sceKernelCreateThread("prxshot", thread_start, 0x10, 4096, 0, 0);
+    if(thid >= 0)
+        sceKernelStartThread(thid, argc, argp);
+    return 0;
 }
 
 int module_stop(SceSize argc, void *argp) {
-	return 0;
+    return 0;
 }

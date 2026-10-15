@@ -22,12 +22,16 @@
 
 #include "micropng.h"
 
-/* Working set handed to pngWrite: encoder state plus one RGB row. */
 /* Encoder state plus a full RGB snapshot of the frame. */
 #define PNG_SCRATCH_SIZE (sizeof(micropng_t) + 480 * 272 * 3)
 
-/* stride is the framebuffer width in pixels (bufferwidth), normally 512. */
+/*
+ * Writes a 480x272 RGB PNG without modifying frame_addr.
+ * scratch must hold PNG_SCRATCH_SIZE bytes, aligned for micropng_t.
+ * stride is the framebuffer width in pixels; nonpositive values use 512.
+ * Returns 0 on success or -1 on error.
+ */
 int pngWrite(void *frame_addr, void *scratch, int stride, int format,
-             const char *file);
+            const char *file);
 
 #endif /* PNG_WRITE_H */

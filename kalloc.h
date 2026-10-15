@@ -26,8 +26,10 @@
 #include <psputils.h>
 #include <pspsuspend.h>
 
+/* Returns a 64-byte-aligned block. */
 void *kalloc(SceSize size, const char *name, int *id, int part, int type);
 void kfree(int id);
 void *kalloc_volatile();
 void kfree_volatile();
+
 #endif /* KALLOC_H_ */

@@ -51,7 +51,6 @@ int read_gameid(const char *path, char *id_buf, int id_size) {
     return res;
 }
 
-
 int generate_gameid(const char *path, char *id_buf, int id_size) {
     struct pbp pbp_data;
     char title[128];
@@ -71,13 +70,12 @@ int generate_gameid(const char *path, char *id_buf, int id_size) {
         res = read_sfo_title(fd, buffer, size, title, sizeof(title));
         if(res > 0) {
             kprintf("Title found: %s\n", title);
-            // Just because all the Homebrew comes with the GAMEID of LocoRoco
-            // we need a way to identity one homebrew from another.
+            /* Homebrew may share LocoRoco's game ID; distinguish them by title. */
             char digest[20];
             sceKernelUtilsSha1Digest((u8 *)title, (u32)res, (u8 *)digest);
             sprintf(buffer, "PS%08X", *(u32 *)digest);
-            memcpy(id_buf, buffer, id_size-1);
-            id_buf[id_size-1] = 0;
+            memcpy(id_buf, buffer, id_size - 1);
+            id_buf[id_size - 1] = 0;
         } else {
             kprintf("Failed to get game title\n");
         }
@@ -136,7 +134,7 @@ void write_pbp(const char *path, const char *eboot, void *argp) {
     char pbpname[48];
     SceUID sfo_fd;
     strcpy(pbpname, path);
-    strcat(pbpname,"/PSCM.DAT");
+    strcat(pbpname, "/PSCM.DAT");
     kprintf("Trying to open %s\n", pbpname);
     SceUID pbp_fd = sceIoOpen(pbpname, PSP_O_RDWR | PSP_O_CREAT | PSP_O_EXCL, 0777);
     if(pbp_fd < 0) {
@@ -171,7 +169,6 @@ void write_pbp(const char *path, const char *eboot, void *argp) {
         sceIoLseek32(sfo_fd, 0, PSP_SEEK_SET);
     }
     kprintf("Got SFO size: %i bytes\n", size);
-    // create SFO data
     if(size > (BUFFER_SIZE - SFO_SIZE)) {
         kprintf("SFO size is too big: %i bytes\n", size);
         return;
@@ -185,9 +182,7 @@ void write_pbp(const char *path, const char *eboot, void *argp) {
         sfo_fd = -1;
     }
     pbp_data.version = 0x10000;
-    // write PBP header
     sceIoWrite(pbp_fd, &pbp_data, sizeof(struct pbp));
-    // write SFO data
     sceIoWrite(pbp_fd, buffer, size);
     if(eboot) {
         sceIoLseek32(sfo_fd, pbp_data.icon0_offset, PSP_SEEK_SET);
@@ -199,7 +194,6 @@ void write_pbp(const char *path, const char *eboot, void *argp) {
         create_path(buffer, argp, "default_icon0.png");
     }
     pbp_data.icon0_offset = pbp_data.sfo_offset + size;
-    // write ICON0.PNG
     size = append_file(buffer, pbp_fd, sfo_fd, imgsize);
 
     pbp_data.icon1_offset = pbp_data.icon0_offset + size;
@@ -213,7 +207,7 @@ void write_pbp(const char *path, const char *eboot, void *argp) {
     }
     if(pic1) {
         imgsize = pbp_data.snd0_offset - pbp_data.pic1_offset;
-        if((!eboot || pbp_data.pic1_offset != pbp_data.snd0_offset)  && api != PSP_INIT_KEYCONFIG_VSH) {
+        if((!eboot || pbp_data.pic1_offset != pbp_data.snd0_offset) && api != PSP_INIT_KEYCONFIG_VSH) {
             strcpy(buffer, PIC1_PATH);
         } else {
             if(api == PSP_INIT_KEYCONFIG_VSH) {
@@ -224,7 +218,6 @@ void write_pbp(const char *path, const char *eboot, void *argp) {
         }
     }
     pbp_data.pic1_offset = pbp_data.icon0_offset + size;
-    // write PIC1.PNG
     if(pic1) {
         size = append_file(buffer, pbp_fd, sfo_fd, imgsize);
     } else {
@@ -235,7 +228,6 @@ void write_pbp(const char *path, const char *eboot, void *argp) {
     pbp_data.psp_offset = pbp_data.pic1_offset + size;
     pbp_data.psar_offset = pbp_data.pic1_offset + size;
     sceIoLseek32(pbp_fd, 0, PSP_SEEK_SET);
-    // write updated PBP header
     sceIoWrite(pbp_fd, &pbp_data, sizeof(struct pbp));
     sceIoClose(pbp_fd);
     if(eboot) {
